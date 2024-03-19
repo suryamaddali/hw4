@@ -24,7 +24,7 @@ Please read the instructions carefully before submitting your assignment.
 
 We will be using the following libraries:
 
-```R
+```{R}
 packages <- c(
   "dplyr", 
   "readr", 
@@ -39,7 +39,7 @@ packages <- c(
   "broom"
 )
 
-# renv::install(packages)
+renv::install(packages)
 sapply(packages, require, character.only=T)
 ```
 
@@ -64,6 +64,11 @@ Using elementary calculus derive the expressions for
 $$
 \frac{d}{dx}g(x, y), \quad \text{and} \quad \frac{d}{dy}g(x, y).
 $$
+$$
+\frac{d}{dx}g(x, y) = (x - 3)^2 + (y - 4)^2
+$$
+
+
 
 Using your answer from above, what is the answer to
 $$
@@ -161,10 +166,17 @@ For this question we will use the **Titanic** dataset from the Stanford data arc
 
 Read the data from the following URL as a tibble in R. Preprocess the data such that the variables are of the right data type, e.g., binary variables are encoded as factors, and convert all column names to lower case for consistency. Let's also rename the response variable `Survival` to `y` for convenience.
 
-```R
+```{R}
 url <- "https://web.stanford.edu/class/archive/cs/cs109/cs109.1166/stuff/titanic.csv"
 
-df <- ... # Insert your code here
+df <- read.csv(url)
+
+#Pre-Processing
+df <- df %>% mutate_at("Survived", factor) %>% rename(y = Survived) %>% mutate_at("Pclass", factor)
+
+names(df) <- tolower(names(df))
+
+df
 ```
 
 ---
@@ -173,8 +185,10 @@ df <- ... # Insert your code here
 
 Visualize the correlation matrix of all numeric columns in `df` using `corrplot()`
 
-```R
-df %>% ... # Insert your code here
+```{R}
+df_numeric <- df %>% select(age, siblings.spouses.aboard, parents.children.aboard, fare)
+
+corrplot(cor(df_numeric))
 ```
 
 
@@ -193,8 +207,11 @@ Fit a logistic regression model to predict the probability of surviving the tita
 * `# parents`
 
 
-```R
-full_model <- ... # Insert your code here
+```{R}
+
+df_logistic <- df %>% select(-name)
+
+full_model <- glm(y ~ ., data = df_logistic, family = "binomial")
 summary(full_model)
 ```
 
@@ -203,6 +220,24 @@ summary(full_model)
 ###### 2.4 (30 points)
 
 Provide an interpretation for the slope and intercept terms estimated in `full_model` in terms of the log-odds of survival in the titanic and in terms of the odds-ratio (if the covariate is also categorical).
+
+The intercept is 4.10977, which is the log-odds of the outcome(response variable y, survival) when all of the numeric predictors are set equal to 0(all of the non-factor and character variables which are age, siblings.spouses.aboard, parents.children.aboard, fare).
+
+Going in order, if the passenger is in the second class, their log odds of surviving would decrease by 1.161.
+
+If the passenger is in the third class, their log odds of surviving would decrease by 2.35.
+
+If the passenger is of the male sex, their log odds of surviving would decrease by 2.757.
+
+As the age of a passenger increases by one, the log odds of survival decreases by 0.04.
+
+As the number of siblings or spouses aboard for a passenger increases by one, the log odds of survival decreases by 0.402.
+
+As the number of parents or children aboard for a passenger increases by one, the log odds of survival decreases by 0.107.
+
+As the fare increases by 1, the log odds of survival increases by 0.00283.
+
+
 
 ::: {.callout-hint}
 ## 
