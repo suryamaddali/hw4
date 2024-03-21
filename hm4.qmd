@@ -39,7 +39,7 @@ packages <- c(
   "broom"
 )
 
-renv::install(packages)
+ #renv::install(packages)
 sapply(packages, require, character.only=T)
 ```
 
@@ -64,18 +64,37 @@ Using elementary calculus derive the expressions for
 $$
 \frac{d}{dx}g(x, y), \quad \text{and} \quad \frac{d}{dy}g(x, y).
 $$
+## Derivative with respect to x
 $$
-\frac{d}{dx}g(x, y) = (x - 3)^2 + (y - 4)^2
+\frac{d}{dx}g(x, y) = 2(x-3) + (y - 4)^2
 $$
-
-
+## Derivative with respect to y
+$$
+\frac{d}{dy}g(x, y) = (x-3)^2 + 2(y - 4)
+$$
 
 Using your answer from above, what is the answer to
 $$
 \frac{d}{dx}g(x, y) \Bigg|_{(x=3, y=4)} \quad \text{and} \quad \frac{d}{dy}g(x, y) \Bigg|_{(x=3, y=4)} ?
 $$
 
+The answer for both is 0.
+
+
 Define $g(x, y)$ as a function in R, compute the gradient of $g(x, y)$ with respect to $x=3$ and $y=4$. Does the answer match what you expected?
+```{R}
+x <- torch_tensor(3, requires_grad = TRUE)
+y <- torch_tensor(4, requires_grad = TRUE)
+
+a <- (x - 3)^2 + (y - 4)^2
+a$backward()
+
+x$grad
+y$grad
+
+
+```
+The answer does indeed match what I expected.
 
 ---
 
@@ -97,6 +116,10 @@ $$
 \nabla_\u h(\u, \v) &= \Bigg(\frac{d}{du_1}h(\u, \v), \frac{d}{du_2}h(\u, \v), \dots, \frac{d}{du_n}h(\u, \v)\Bigg)
 \end{aligned}
 $$
+$$
+\frac{d}{du_n}h(\u, \v) = 3u^2v^3
+$$
+
 
 Using your answer from above, what is the answer to $\nabla_\u h(\u, \v)$ when $n=10$ and
 
@@ -106,8 +129,35 @@ $$
 \v = (-1, -1, -1, -1, -1, +1, +1, +1, +1, +1)
 \end{aligned}
 $$
+$$
+u * v= 2
+$$
+
+$$
+\frac{d}{du_10}h(\u, \v) = 3(2)^2(2)^3 = 96
+$$
+
 
 Define $h(\u, \v)$ as a function in R, initialize the two vectors $\u$ and $\v$ as `torch_tensor`s. Compute the gradient of $h(\u, \v)$ with respect to $\u$. Does the answer match what you expected?
+```{R}
+
+func <- function(u,v){
+3*u^3*v^3  
+}
+
+u <- torch_tensor(2, requires_grad = TRUE)
+
+v <- torch_tensor(2, requires_grad = TRUE)
+
+uv <- func(u,v)
+
+uv$backward()
+
+u$grad
+v$grad
+
+```
+
 
 ---
 
@@ -124,7 +174,33 @@ f'(z_0) = \frac{df}{dz}\Bigg|_{z=z_0}
 $$
 and evaluate $f'(z_0)$ when $z_0 = -3.5$.
 
+$$
+f'(z_0) = 4z_0^3-12z_0-3
+$$
+$$
+f'(-3.5) = 4(-3.5)^3-12(-3.5)-3 = -132.5
+$$
+
+
 Define $f(z)$ as a function in R, and using the `torch` library compute $f'(-3.5)$. 
+```{R}
+
+f <- function(z){
+  z^4 - 6*(z)^2 - 3*(z)+4
+}
+
+x <- torch_tensor(-3.5, requires_grad = TRUE)
+
+z0 <- f(x)
+
+z0$backward()
+
+x$grad
+
+
+
+
+```
 
 
 ---
@@ -269,16 +345,17 @@ Complete the following function `overview` which takes in two categorical vector
 * The false positive rate, and
 * The false negative rate
 
-```R
+```{R}
 overview <- function(predicted, expected){
-    accuracy <- ... # Insert your code here
-    error <- ... # Insert your code here
-    total_false_positives <- ... # Insert your code here
-    total_true_positives <- ... # Insert your code here
-    total_false_negatives <- ... # Insert your code here
-    total_true_negatives <- ... # Insert your code here
-    false_positive_rate <- ... # Insert your code here
-    false_negative_rate <- ... # Insert your code here
+    y <- table(expected,predicted)
+    accuracy <- ((y[1] + y[4])/(y[1] + y[2] + y[3] + y[4])) * 100
+    error <- (y[2] + y[3]) / (y[1] + y[2] + y[3] + y[4])
+    total_false_positives <- y[3]
+    total_true_positives <- y[4]
+    total_false_negatives <- y[2]
+    total_true_negatives <- y[1]
+    false_positive_rate <- y[3] / (y[2] + y[1])
+    false_negative_rate <- y[2]/(y[2] + y[4])
     return(
         data.frame(
             accuracy = accuracy, 
@@ -292,7 +369,7 @@ overview <- function(predicted, expected){
 
 You can check if your function is doing what it's supposed to do by evaluating
 
-```R
+```{R}
 overview(df$y, df$y)
 ```
 and making sure that the accuracy is $100\%$ while the errors are $0\%$.
@@ -302,8 +379,14 @@ and making sure that the accuracy is $100\%$ while the errors are $0\%$.
 
 Display an overview of the key performance metrics of `full_model`
 
-```R
-... # Insert your code here
+```{R}
+
+y_1 <- predict(full_model, type = 'response')
+y_2 <- ifelse(y_1 < 0.5, 0, 1)
+
+
+overview(y_2, df$y)
+
 ```
 
 ---
@@ -312,14 +395,15 @@ Display an overview of the key performance metrics of `full_model`
 
 Using backward-stepwise logistic regression, find a parsimonious altenative to `full_model`, and print its `overview`
 
-```R
-step_model <- ... # Insert your code here. 
+```{R}
+step_model <- step(full_model, direction = 'backward') 
 summary(step_model)
 ```
 
-```R
-step_predictions <- ... # Insert your code here
-overview(step_predictions, df$y)
+```{R}
+step_predictions <- predict(step_model, type = 'response')
+y_4 <- ifelse(step_predictions < 0.5, 0, 1)
+overview(y_4, df$y)
 ```
 
 ---
@@ -328,7 +412,7 @@ overview(step_predictions, df$y)
 
 Using the `caret` package, setup a **$5$-fold cross-validation** training method using the `caret::trainConrol()` function
 
-```R
+```{R}
 controls <- trainControl() # ... insert your code here
 ```
 
@@ -336,7 +420,7 @@ Now, using `control`, perform $5$-fold cross validation using `caret::train()` t
 
 Take the search grid for $\lambda$ to be in $\{ 2^{-20}, 2^{-19.5}, 2^{-19}, \dots, 2^{-0.5}, 2^{0} \}$.
 
-```R
+```{R}
 # Insert your code in the ... region
 lasso_fit <- train(
   x = ...,
@@ -358,20 +442,20 @@ Using the information stored in `lasso_fit$results`, plot the results for  cross
 
 First, use the `model.matrix()` function to convert the covariates of `df` to a matrix format
 
-```R
+```{R}
 covariate_matrix <- model.matrix(full_model)[, -1]
 ```
 
 Now, initialize the covariates $X$ and the response $y$ as `torch` tensors
 
-```R
+```{R}
 X <- ... # Insert your code here
 y <- ... # Insert your code here
 ```
 
 Using the `torch` library, initialize an `nn_module` which performs logistic regression for this dataset. (Remember that we have 6 different covariates)
 
-```R
+```{R}
 logistic <- nn_module(
   initialize = function() {
     self$f <- ... # Insert your code here
@@ -387,14 +471,14 @@ f <- logistic()
 
 You can verify that your code is right by checking that the output to the following code is a vector of probabilities:
 
-```R
+```{R}
 f(X)
 ```
 
 
 Now, define the loss function `Loss()` which takes in two tensors `X` and `y` and a function `Fun`, and outputs the **Binary cross Entropy loss** between `Fun(X)` and `y`. 
 
-```R
+```{R}
 Loss <- function(X, y, Fun){
   ... # Insert our code here
 }
@@ -402,7 +486,7 @@ Loss <- function(X, y, Fun){
 
 Initialize an optimizer using `optim_adam()` and perform $n=1000$ steps of gradient descent in order to fit logistic regression using `torch`.
 
-```R
+```{R}
 f <- logistic()
 optimizer <- optim_adam(...) # Insert your code here
 
@@ -412,7 +496,7 @@ n <- 1000
 
 Using the final, optimized parameters of `f`, compute the compute the predicted results on `X`
 
-```R
+```{R}
 predicted_probabilities <- f(X) %>% as_array()
 torch_predictions <- ... # Insert your code here
 
