@@ -585,7 +585,7 @@ summary_table
 
 ```
 
-
+From this overview summary table of all four models, it can be concluded that the step model yields the hightest overall accuracy and lowest error as a result.  The lowest accuracy was yielded by the lasso model.  The highest false positive rate also belongs to the step model, while the highest false negative rate pertains to the lasso logistic model.
 
 :::{.hidden unless-format="pdf"}
 \pagebreak
