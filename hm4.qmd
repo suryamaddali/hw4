@@ -4,7 +4,7 @@ author: "[Insert your name here]{style='background-color: yellow;'}"
 toc: true
 title-block-banner: true
 title-block-style: default
-format: html
+format: pdf
 # format: pdf
 ---
 
@@ -413,7 +413,8 @@ overview(y_4, df$y)
 Using the `caret` package, setup a **$5$-fold cross-validation** training method using the `caret::trainConrol()` function
 
 ```{R}
-controls <- trainControl() # ... insert your code here
+controls <- trainControl(method = "cv", number = 5)
+
 ```
 
 Now, using `control`, perform $5$-fold cross validation using `caret::train()` to select the optimal $\lambda$ parameter for LASSO with logistic regression. 
@@ -423,18 +424,27 @@ Take the search grid for $\lambda$ to be in $\{ 2^{-20}, 2^{-19.5}, 2^{-19}, \do
 ```{R}
 # Insert your code in the ... region
 lasso_fit <- train(
-  x = ...,
-  y = ...,
-  method = ...,
+  x = df%>%select(-y)%>%data.matrix(),
+  y = df$y,
+  method = 'glmnet',
   trControl = controls, 
   tuneGrid = expand.grid(
-    alpha = ...,
+    alpha = 1,
     lambda = 2^seq(-20, 0, by = 0.5)
     ),
-  family = ...
+  family = 'binomial'
 )
 ```
 Using the information stored in `lasso_fit$results`, plot the results for  cross-validation accuracy vs. $log_2(\lambda)$. Choose the optimal $\lambda^*$, and report your results for this value of $\lambda^*$.
+
+```{R}
+
+results <- lasso_fit$results
+
+plot(log2(results$lambda), results$Accuracy)
+
+```
+Since the point of dropoff is at (-3.0, 0.7858313), the optimal lambda would be 2^-3 = 0.125.
 
 ---
 
@@ -449,8 +459,8 @@ covariate_matrix <- model.matrix(full_model)[, -1]
 Now, initialize the covariates $X$ and the response $y$ as `torch` tensors
 
 ```{R}
-X <- ... # Insert your code here
-y <- ... # Insert your code here
+X <- torch_tensor(covariate_matrix)
+y <- torch_tensor(as.numeric(df$y)-1)
 ```
 
 Using the `torch` library, initialize an `nn_module` which performs logistic regression for this dataset. (Remember that we have 6 different covariates)
@@ -458,11 +468,11 @@ Using the `torch` library, initialize an `nn_module` which performs logistic reg
 ```{R}
 logistic <- nn_module(
   initialize = function() {
-    self$f <- ... # Insert your code here
-    self$g <- ... # Insert your code here
+    self$f <- nn_linear(7,1)
+    self$g <- nn_sigmoid()
   },
   forward = function(x) {
-    ... # Insert your code here
+    covariate_matrix %>% self$f()%>%self$g()
   }
 )
 
@@ -480,25 +490,37 @@ Now, define the loss function `Loss()` which takes in two tensors `X` and `y` an
 
 ```{R}
 Loss <- function(X, y, Fun){
-  ... # Insert our code here
+  nn_bce_loss()(Fun(X), y)
 }
+
 ```
 
 Initialize an optimizer using `optim_adam()` and perform $n=1000$ steps of gradient descent in order to fit logistic regression using `torch`.
 
 ```{R}
 f <- logistic()
-optimizer <- optim_adam(...) # Insert your code here
+optimizer <- optim_adam(f$parameters, lr = 0.01) 
 
 n <- 1000
-...  # Insert your code for gradient descent here
+for (i in 1:n){
+  loss <- Loss(X, y, f)
+  
+  optimizer$zero_grad()
+  loss$backward()
+  optimizer$step()
+  
+  if (i %% 20 == 0) {
+    cat(sprintf("Epoch: %d, Loss: %.4f/n", i, loss$item()))
+  }
+}
+
 ```
 
 Using the final, optimized parameters of `f`, compute the compute the predicted results on `X`
 
 ```{R}
 predicted_probabilities <- f(X) %>% as_array()
-torch_predictions <- ... # Insert your code here
+torch_predictions <- ifelse(predicted_probabilities > 0.5, 1, 0)
 
 overview(torch_predictions, df$y)
 ```
