@@ -212,14 +212,57 @@ For the same function $f$, initialize $z[1] = -3.5$, and perform $n=100$ iterati
 > $z[{k+1}] = z[k] - \eta f'(z[k]) \ \ \ \ $ for $k = 1, 2, \dots, 100$
 
 Plot the curve $f$ and add taking $\eta = 0.02$, add the points $\{z_0, z_1, z_2, \dots z_{100}\}$ obtained using gradient descent to the plot. What do you observe?
+```{R}
 
+derived_function <- function(z){
+  4*(z^3)-12*(z)-3
+}
+
+eta = 0.02
+n = 100
+
+x <- rep(0, n)
+x[1] <- -3.5
+
+for (i in 1:n){
+  x[i+1] <- x[i]-(eta*derived_function(x[i]))
+}
+
+plot(seq(1,101), x)
+
+
+```
+I observe that the plot started leveling out right below x = -1.5.
 ---
 
 ###### 1.5 (5 points)
 
 
 Redo the same analysis as **Question 1.4**, but this time using $\eta = 0.03$. What do you observe? What can you conclude from this analysis
+```{R}
 
+derived_function2 <- function(z){
+  4*(z^3)-12*(z)-3
+}
+
+eta2 = 0.03
+n2 = 100
+
+x2 <- rep(0, n)
+x2[1] <- -3.5
+
+for (i in 1:n){
+  x2[i+1] <- x2[i]-(eta2*derived_function2(x[i]))
+}
+
+plot(seq(1,101), x2)
+
+
+
+
+
+```
+I noticed that the dropoff occurs between 0 and -1 and about at -0.75.  I can conclude that the descent is overall greater and less pronounced when the eta value increases.
 
 
 
@@ -529,7 +572,19 @@ overview(torch_predictions, df$y)
 
 ###### 3.6  (5 points)
 
-Create a summary table of the `overview()` summary statistics for each of the $4$ models we have looked at in this assignment, and comment on their relative strengths and drawbacks. 
+Create a summary table of the `overview()` summary statistics for each of the $4$ models we have looked at in this assignment, and comment on their relative strengths and drawbacks.
+
+```{R}
+
+summary_table <- 
+  rbind(overview(predict(lasso_fit), df$y), overview(y_2, df$y), overview(y_4, df$y), overview(torch_predictions, df$y))
+
+summary_table
+
+
+
+```
+
 
 
 :::{.hidden unless-format="pdf"}
